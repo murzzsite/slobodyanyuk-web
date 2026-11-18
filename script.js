@@ -27,6 +27,7 @@ const LEAD_ENDPOINT = 'https://lead-relay.leestygpt.workers.dev/lead/N26X74HBAE'
   /* расчёт */
   const calc = { text: '' };
   safe(() => {
+    /* цены из брифа; на slobodyanyukai.ru в FAQ указаны другие (лендинг 25 000, ИИ-агент 40 000, дизайн 40 000): сверить с клиентом */
     const P = { land: 15000, bot: 15000, crm: 25000, ai: 25000, design: 10000 };
     const NAME = { land: 'Лендинг', site: 'Сайт под ключ', bot: 'Telegram-бот', crm: 'Подключение к amoCRM', ai: 'ИИ-агент', design: 'Дизайн ключевых экранов', custom: 'Автоматизация под задачу' };
     const sumEl = $('#sum'), noteEl = $('#sumN'), ver = $('#verdict');
@@ -88,6 +89,7 @@ const LEAD_ENDPOINT = 'https://lead-relay.leestygpt.workers.dev/lead/N26X74HBAE'
       if (!calc.text) return;
       const rest = task.value.replace(/^Выбрано в расчёте:.*(\n|$)/, '');
       task.value = line + (rest ? '\n' + rest : '');
+      $('#calcField').value = calc.text;
     });
   });
 
@@ -119,8 +121,9 @@ const LEAD_ENDPOINT = 'https://lead-relay.leestygpt.workers.dev/lead/N26X74HBAE'
       const payload = {}; new FormData(form).forEach((v, k) => { payload[k] = v; });
       if (payload._gotcha) return;
       if (!payload.name || !payload.phone) { btn.textContent = 'Заполните имя и контакт'; setTimeout(() => btn.textContent = orig, 2500); return; }
-      payload.comment = payload.task || '';
-      delete payload.task; delete payload.calc;
+      if (!payload.agree) { btn.textContent = 'Нужно согласие на обработку данных'; setTimeout(() => btn.textContent = orig, 2800); return; }
+      payload.comment = [payload.task || '', payload.calc ? 'Расчёт: ' + payload.calc : ''].filter(Boolean).join('\n');
+      delete payload.task; delete payload.calc; delete payload.agree;
       btn.disabled = true; btn.textContent = 'Отправляем...';
       try {
         const r = await fetch(LEAD_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
